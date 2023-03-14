@@ -28,11 +28,18 @@ func (head *lfstack) push(node *lfnode) {
 		print("runtime: lfstack.push invalid packing: node=", node, " cnt=", hex(node.pushcnt), " packed=", hex(new), " -> node=", node1, "\n")
 		throw("lfstack.push")
 	}
+	old := atomic.Load64((*uint64)(head))
+	node.next = old
 	for {
-		old := atomic.Load64((*uint64)(head))
-		node.next = old
 		if atomic.Cas64((*uint64)(head), old, new) {
 			break
+		}
+		for {
+			old = atomic.Load64((*uint64)(head))
+			node.next = old
+			if atomic.Load64((*uint64)(head)) == old {
+				break
+			}
 		}
 	}
 }
