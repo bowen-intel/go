@@ -45,15 +45,26 @@ func (head *lfstack) push(node *lfnode) {
 }
 
 func (head *lfstack) pop() unsafe.Pointer {
+	old := atomic.Load64((*uint64)(head))
+	if old == 0 {
+		return nil
+	}
+	node := lfstackUnpack(old)
+	next := atomic.Load64(&node.next)
 	for {
-		old := atomic.Load64((*uint64)(head))
-		if old == 0 {
-			return nil
-		}
-		node := lfstackUnpack(old)
-		next := atomic.Load64(&node.next)
 		if atomic.Cas64((*uint64)(head), old, next) {
 			return unsafe.Pointer(node)
+		}
+		for {
+			old = atomic.Load64((*uint64)(head))
+			if old == 0 {
+				return nil
+			}
+			node = lfstackUnpack(old)
+			next = atomic.Load64(&node.next)
+			if atomic.Load64((*uint64)(head)) == old {
+				break
+			}
 		}
 	}
 }
