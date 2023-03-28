@@ -40,6 +40,7 @@ func (head *lfstack) push(node *lfnode) {
 			if atomic.Load64((*uint64)(head)) == old {
 				break
 			}
+			procyield(1)
 		}
 	}
 }
@@ -65,6 +66,7 @@ func (head *lfstack) pop() unsafe.Pointer {
 			if atomic.Load64((*uint64)(head)) == old {
 				break
 			}
+			procyield(1)
 		}
 	}
 }
